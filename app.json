@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "StockSuite Pro",
+    "slug": "stocksuiteproandroid",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d1117"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0d1117"
+      },
+      "package": "com.stocksuitepro.android",
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "platforms": ["android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "name": "StockSuite Pro"
+    },
+    "plugins": [
+      "expo-splash-screen"
+    ]
+  }
+}
