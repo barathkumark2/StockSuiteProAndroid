@@ -117,10 +117,10 @@ export const FONT_SIZES = {
   sm: 12,
   base: 14,
   md: 16,
-  lg: 18,
-  xl: 22,
-  xxl: 28,
-  xxxl: 36,
+  lg: 16,
+  xl: 18,
+  xxl: 22,
+  xxxl: 28,
 };
 
 export const FONT_WEIGHTS = {

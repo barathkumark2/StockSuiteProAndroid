@@ -37,7 +37,7 @@ const NumericInput: React.FC<Props> = ({
 
   return (
     <View style={styles.wrapper}>
-      <Text style={[styles.label, { color: palette.textMuted }]}>{label}</Text>
+      <Text style={[styles.label, { color: palette.textSecondary }]}>{label}</Text>
       <View
         style={[
           styles.row,
@@ -60,7 +60,7 @@ const NumericInput: React.FC<Props> = ({
             onChangeValue(isNaN(n) ? 0 : n);
           }}
           keyboardType="decimal-pad"
-          placeholderTextColor={palette.textMuted}
+          placeholderTextColor={palette.textSecondary}
           placeholder="0"
           selectionColor={palette.accentPrimary}
           {...rest}

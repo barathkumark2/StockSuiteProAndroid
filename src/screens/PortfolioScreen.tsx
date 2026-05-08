@@ -596,9 +596,6 @@ const PortfolioScreen: React.FC = () => {
             />
           </View>
 
-          {/* Analytics */}
-          {renderAnalytics()}
-
           {/* Add position */}
           <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>Positions</Text>
           <View style={[styles.addRow, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
@@ -629,6 +626,11 @@ const PortfolioScreen: React.FC = () => {
             </View>
           )}
         </>
+      )}
+      ListFooterComponent={() => (
+        <View style={{ marginTop: SPACING.lg }}>
+          {renderAnalytics()}
+        </View>
       )}
     />
   );

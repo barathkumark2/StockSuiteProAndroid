@@ -41,7 +41,7 @@ const StatCard: React.FC<Props> = ({
         ]}
         numberOfLines={1}
         adjustsFontSizeToFit
-        minimumFontScale={0.6}
+        minimumFontScale={0.4}
       >
         {value}
       </Text>

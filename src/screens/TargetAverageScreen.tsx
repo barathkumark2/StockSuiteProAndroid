@@ -166,7 +166,6 @@ const TargetAverageScreen: React.FC = () => {
               subValue={`Exact: ${sharesToBuy.toFixed(decimals)}`}
               valueColor={palette.textPrimary}
               style={styles.statHalf}
-              large
             />
             <StatCard
               label="Additional Investment"

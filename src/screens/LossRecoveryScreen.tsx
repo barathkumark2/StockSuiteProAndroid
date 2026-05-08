@@ -166,7 +166,6 @@ const LossRecoveryScreen: React.FC = () => {
               value={`-${lossPercent.toFixed(2)}%`}
               valueColor={palette.statusLoss}
               style={styles.statHalf}
-              large
             />
             <View style={styles.statHalf}>
               <View
@@ -293,7 +292,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   requiredValue: {
-    fontSize: FONT_SIZES.xxxl,
+    fontSize: FONT_SIZES.xl,
     fontWeight: FONT_WEIGHTS.extrabold,
   },
   requiredHint: { fontSize: FONT_SIZES.xs, marginTop: 2 },

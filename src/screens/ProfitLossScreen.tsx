@@ -201,14 +201,12 @@ const ProfitLossScreen: React.FC = () => {
               value={`${isProfit ? '+' : ''}${currency}${netPnL.toFixed(2)}`}
               valueColor={isProfit ? palette.statusProfit : palette.statusLoss}
               style={styles.statHalf}
-              large
             />
             <StatCard
               label="ROI"
               value={`${isProfit ? '+' : ''}${roi.toFixed(2)}%`}
               valueColor={isProfit ? palette.statusProfit : palette.statusLoss}
               style={styles.statHalf}
-              large
             />
           </View>
           <View style={{ marginTop: SPACING.sm }}>
