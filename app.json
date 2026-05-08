@@ -19,7 +19,10 @@
       "package": "com.stocksuitepro.android",
       "softwareKeyboardLayoutMode": "pan"
     },
-    "platforms": ["android", "web"],
+    "platforms": [
+      "android",
+      "web"
+    ],
     "web": {
       "bundler": "metro",
       "output": "single",
@@ -28,6 +31,17 @@
     },
     "plugins": [
       "expo-splash-screen"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "bd9b0d53-afc6-4570-8b7b-a52766eb566d"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.stocksuitepro.android",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
   }
 }
