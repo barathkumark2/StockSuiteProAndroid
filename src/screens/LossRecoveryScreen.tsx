@@ -84,7 +84,6 @@ const LossRecoveryScreen: React.FC = () => {
           value={data.currentValue}
           onChangeValue={(v) => update({ currentValue: v })}
           placeholder="e.g. 5000"
-          style={{ marginBottom: 0 }}
         />
       </SectionCard>
 
