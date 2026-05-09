@@ -148,7 +148,7 @@ const StockAverageScreen: React.FC = () => {
   };
 
   // ─── Render tranche row ────────────────────────────────────
-  const renderItem = ({ item }: { item: Tranche }) => {
+  const renderItem = useCallback(({ item }: { item: Tranche }) => {
     const rowTotal = (item.buyPrice || 0) * (item.quantity || 0);
     return (
       <View
@@ -188,7 +188,7 @@ const StockAverageScreen: React.FC = () => {
         </View>
       </View>
     );
-  };
+  }, [palette, currency, updateTranche, removeRow]);
 
   return (
     <ScrollView

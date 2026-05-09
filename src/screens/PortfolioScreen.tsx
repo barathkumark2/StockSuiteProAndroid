@@ -1,7 +1,7 @@
 // PortfolioScreen.tsx – Live portfolio tracker with analytics
 import * as Crypto from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -103,7 +103,7 @@ const PortfolioScreen: React.FC = () => {
   }, [positions, persist]);
 
   // ── Sorting logic ────────────────────────────────────────────
-  const getSortedPositions = () => {
+  const sortedPositions = useMemo(() => {
     const sorted = [...positions];
     const multiplier = sortOrder === 'desc' ? 1 : -1;
 
@@ -124,7 +124,7 @@ const PortfolioScreen: React.FC = () => {
       default:
         return sorted;
     }
-  };
+  }, [positions, sortBy, sortOrder]);
 
   const handleSort = (opt: SortOption) => {
     if (sortBy === opt) {
@@ -135,7 +135,6 @@ const PortfolioScreen: React.FC = () => {
     }
   };
 
-  const sortedPositions = getSortedPositions();
   const sortOptions: { label: string; value: SortOption; icon: string }[] = [
     { label: 'Qty', value: 'qty', icon: 'layers-outline' },
     { label: 'Avg', value: 'avgPrice', icon: 'calculator-outline' },
@@ -146,9 +145,9 @@ const PortfolioScreen: React.FC = () => {
   ];
 
   // Helper to check if a value is currently sorted
-  const isSortedValue = (fieldType: string): boolean => {
+  const isSortedValue = useCallback((fieldType: string): boolean => {
     return sortBy === fieldType;
-  };
+  }, [sortBy]);
 
   const updatePosition = useCallback(async (id: string, field: keyof PortfolioPosition, val: number) => {
     setPositions(prev => {
@@ -245,7 +244,7 @@ const PortfolioScreen: React.FC = () => {
     });
 
   // ── Render position card ─────────────────────────────────────
-  const renderPosition = ({ item: pos }: { item: PortfolioPosition }) => {
+  const renderPosition = useCallback(({ item: pos }: { item: PortfolioPosition }) => {
     const investment = pos.qty * pos.avgPrice;
     const currentVal = pos.qty * pos.cmp;
     const pnl = currentVal - investment;
@@ -441,10 +440,10 @@ const PortfolioScreen: React.FC = () => {
         )}
       </SectionCard>
     );
-  };
+  }, [expandedId, palette, currency, decimals, isSortedValue, updatePosition, removePosition]);
 
   // ── Analytics tab content ────────────────────────────────────
-  const renderAnalytics = () => {
+  const renderAnalytics = useCallback(() => {
     if (positions.length === 0) return null;
     return (
       <View style={{ marginBottom: SPACING.base }}>
@@ -477,7 +476,7 @@ const PortfolioScreen: React.FC = () => {
 
         <SectionCard>
           {analyticsTab === 'allocation' && pieDataCurrent.length > 0 && (
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
               <View style={{ alignItems: 'center', marginBottom: SPACING.xl }}>
                 <Text style={[styles.chartTitle, { color: palette.textMuted }]}>By Current Value</Text>
                 <PieChart
@@ -537,7 +536,7 @@ const PortfolioScreen: React.FC = () => {
           )}
 
           {analyticsTab === 'performance' && (
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
               {/* P&L % Chart */}
               <View style={{ marginBottom: SPACING.xl }}>
                 <Text style={[styles.chartTitle, { color: palette.textMuted }]}>P&L % by Stock</Text>
@@ -640,7 +639,7 @@ const PortfolioScreen: React.FC = () => {
         </SectionCard>
       </View>
     );
-  };
+  }, [positions, palette, analyticsTab, pieDataCurrent, totalCurrent, currency, pieDataInvested, totalInvestment, barData, groupedBarData, waterfallData]);
 
   return (
     <FlatList
@@ -650,7 +649,7 @@ const PortfolioScreen: React.FC = () => {
       data={isListExpanded ? sortedPositions : []}
       keyExtractor={p => p.id}
       renderItem={renderPosition}
-      ListHeaderComponent={() => (
+      ListHeaderComponent={(
         <>
           {/* Title */}
           <View style={styles.headerRow}>
@@ -783,7 +782,7 @@ const PortfolioScreen: React.FC = () => {
           )}
         </>
       )}
-      ListFooterComponent={() => (
+      ListFooterComponent={(
         <View style={{ marginTop: SPACING.lg }}>
           {renderAnalytics()}
         </View>
