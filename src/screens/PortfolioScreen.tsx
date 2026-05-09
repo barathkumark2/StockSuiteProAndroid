@@ -6,6 +6,8 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,6 +34,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_WIDTH = SCREEN_WIDTH - SPACING.base * 2 - 2;
 
 type AnalyticsTab = 'allocation' | 'performance' | 'heatmap';
+type SortOption = 'qty' | 'avgPrice' | 'cmp' | 'invested' | 'current' | 'pnl';
+type SortOrder = 'asc' | 'desc';
 
 const makePosition = (symbol: string): PortfolioPosition => ({
   id: Crypto.randomUUID(),
@@ -47,6 +51,9 @@ const PortfolioScreen: React.FC = () => {
   const [newSymbol, setNewSymbol] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [analyticsTab, setAnalyticsTab] = useState<AnalyticsTab>('allocation');
+  const [isListExpanded, setIsListExpanded] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>('invested');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   useEffect(() => {
     (async () => {
@@ -70,19 +77,78 @@ const PortfolioScreen: React.FC = () => {
   }, [newSymbol, positions, persist]);
 
   const removePosition = useCallback(async (id: string) => {
-    Alert.alert('Remove Position', 'Delete this position?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          const next = positions.filter(p => p.id !== id);
-          setPositions(next);
-          await persist(next);
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    const performDelete = async () => {
+      const next = positions.filter(p => p.id !== id);
+      setPositions(next);
+      await persist(next);
+      if (Platform.OS !== 'web') {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Delete this position?')) {
+        await performDelete();
+      }
+    } else {
+      Alert.alert('Remove Position', 'Delete this position?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: performDelete,
         },
-      },
-    ]);
+      ]);
+    }
   }, [positions, persist]);
+
+  // ── Sorting logic ────────────────────────────────────────────
+  const getSortedPositions = () => {
+    const sorted = [...positions];
+    const multiplier = sortOrder === 'desc' ? 1 : -1;
+
+    switch (sortBy) {
+      case 'qty':
+        return sorted.sort((a, b) => (b.qty - a.qty) * multiplier);
+      case 'avgPrice':
+        return sorted.sort((a, b) => (b.avgPrice - a.avgPrice) * multiplier);
+      case 'cmp':
+        return sorted.sort((a, b) => (b.cmp - a.cmp) * multiplier);
+      case 'invested':
+        return sorted.sort((a, b) => ((b.qty * b.avgPrice) - (a.qty * a.avgPrice)) * multiplier);
+      case 'current':
+        return sorted.sort((a, b) => ((b.qty * b.cmp) - (a.qty * a.cmp)) * multiplier);
+      case 'pnl':
+        const getPnl = (p: PortfolioPosition) => (p.qty * p.cmp) - (p.qty * p.avgPrice);
+        return sorted.sort((a, b) => (getPnl(b) - getPnl(a)) * multiplier);
+      default:
+        return sorted;
+    }
+  };
+
+  const handleSort = (opt: SortOption) => {
+    if (sortBy === opt) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(opt);
+      setSortOrder('desc');
+    }
+  };
+
+  const sortedPositions = getSortedPositions();
+  const sortOptions: { label: string; value: SortOption; icon: string }[] = [
+    { label: 'Qty', value: 'qty', icon: 'layers-outline' },
+    { label: 'Avg', value: 'avgPrice', icon: 'calculator-outline' },
+    { label: 'CMP', value: 'cmp', icon: 'trending-up-outline' },
+    { label: 'Invested', value: 'invested', icon: 'wallet-outline' },
+    { label: 'Current', value: 'current', icon: 'cash-outline' },
+    { label: 'P&L', value: 'pnl', icon: 'bar-chart-outline' },
+  ];
+
+  // Helper to check if a value is currently sorted
+  const isSortedValue = (fieldType: string): boolean => {
+    return sortBy === fieldType;
+  };
 
   const updatePosition = useCallback(async (id: string, field: keyof PortfolioPosition, val: number) => {
     setPositions(prev => {
@@ -221,9 +287,14 @@ const PortfolioScreen: React.FC = () => {
         {/* Input row */}
         <View style={styles.inputRow}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: palette.textMuted }]}>QTY</Text>
+            <Text style={[styles.inputLabel, { color: palette.textMuted, fontWeight: isSortedValue('qty') ? FONT_WEIGHTS.bold : FONT_WEIGHTS.medium }]}>QTY</Text>
             <TextInput
-              style={[styles.posInput, { color: palette.textPrimary, backgroundColor: palette.inputBg, borderColor: palette.inputBorder }]}
+              style={[styles.posInput, { 
+                color: palette.textPrimary, 
+                backgroundColor: isSortedValue('qty') ? palette.accentPrimary + '15' : palette.inputBg,
+                borderColor: isSortedValue('qty') ? palette.accentPrimary : palette.inputBorder,
+                borderWidth: isSortedValue('qty') ? 2 : 1,
+              }]}
               value={pos.qty > 0 ? String(pos.qty) : ''}
               onChangeText={t => updatePosition(pos.id, 'qty', parseFloat(t) || 0)}
               keyboardType="decimal-pad"
@@ -232,9 +303,14 @@ const PortfolioScreen: React.FC = () => {
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: palette.textMuted }]}>AVG ({currency})</Text>
+            <Text style={[styles.inputLabel, { color: palette.textMuted, fontWeight: isSortedValue('avgPrice') ? FONT_WEIGHTS.bold : FONT_WEIGHTS.medium }]}>AVG ({currency})</Text>
             <TextInput
-              style={[styles.posInput, { color: palette.textPrimary, backgroundColor: palette.inputBg, borderColor: palette.inputBorder }]}
+              style={[styles.posInput, { 
+                color: palette.textPrimary, 
+                backgroundColor: isSortedValue('avgPrice') ? palette.accentPrimary + '15' : palette.inputBg,
+                borderColor: isSortedValue('avgPrice') ? palette.accentPrimary : palette.inputBorder,
+                borderWidth: isSortedValue('avgPrice') ? 2 : 1,
+              }]}
               value={pos.avgPrice > 0 ? String(pos.avgPrice) : ''}
               onChangeText={t => updatePosition(pos.id, 'avgPrice', parseFloat(t) || 0)}
               keyboardType="decimal-pad"
@@ -243,12 +319,13 @@ const PortfolioScreen: React.FC = () => {
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: palette.textMuted }]}>CMP ({currency})</Text>
+            <Text style={[styles.inputLabel, { color: palette.textMuted, fontWeight: isSortedValue('cmp') ? FONT_WEIGHTS.bold : FONT_WEIGHTS.medium }]}>CMP ({currency})</Text>
             <TextInput
               style={[styles.posInput, {
                 color: palette.textPrimary,
-                backgroundColor: palette.inputBg,
-                borderColor: isProfit ? palette.statusProfit + '60' : palette.statusLoss + '60',
+                backgroundColor: isSortedValue('cmp') ? palette.accentPrimary + '15' : palette.inputBg,
+                borderColor: isSortedValue('cmp') ? palette.accentPrimary : palette.inputBorder,
+                borderWidth: isSortedValue('cmp') ? 2 : 1,
               }]}
               value={pos.cmp > 0 ? String(pos.cmp) : ''}
               onChangeText={t => updatePosition(pos.id, 'cmp', parseFloat(t) || 0)}
@@ -282,9 +359,15 @@ const PortfolioScreen: React.FC = () => {
               {isProfit ? '+' : ''}{pnlPct.toFixed(2)}%
             </Text>
           </View>
-          <TouchableOpacity onPress={() => removePosition(pos.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Pressable
+            onPress={() => removePosition(pos.id)}
+            style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1, padding: 8 }]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Delete position"
+          >
             <Ionicons name="trash-outline" size={18} color={palette.statusLoss} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Expanded Strategist */}
@@ -564,7 +647,7 @@ const PortfolioScreen: React.FC = () => {
       style={[styles.root, { backgroundColor: palette.appBg }]}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
-      data={positions}
+      data={isListExpanded ? sortedPositions : []}
       keyExtractor={p => p.id}
       renderItem={renderPosition}
       ListHeaderComponent={() => (
@@ -617,6 +700,79 @@ const PortfolioScreen: React.FC = () => {
               <Text style={styles.addBtnTxt}>Add</Text>
             </TouchableOpacity>
           </View>
+
+          {/* List Expand/Collapse */}
+          {positions.length > 0 && (
+            <Pressable
+              onPress={() => setIsListExpanded(!isListExpanded)}
+              style={({ pressed }) => [
+                styles.expandToggle,
+                { backgroundColor: palette.cardBg, borderColor: palette.cardBorder, opacity: pressed ? 0.8 : 1 }
+              ]}
+            >
+              <View style={styles.expandToggleLeft}>
+                <Ionicons
+                  name={isListExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={palette.accentPrimary}
+                />
+                <View>
+                  <Text style={[styles.expandToggleTitle, { color: palette.textPrimary }]}>
+                    {isListExpanded ? 'Hide Stocks' : 'Show Stocks'}
+                  </Text>
+                  <Text style={[styles.expandToggleSub, { color: palette.textMuted }]}>
+                    {positions.length} position{positions.length !== 1 ? 's' : ''} • Sort by: {sortOptions.find(o => o.value === sortBy)?.label}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="swap-vertical-outline" size={18} color={palette.accentPrimary} />
+            </Pressable>
+          )}
+
+          {/* Sort Options */}
+          {isListExpanded && positions.length > 0 && (
+            <View style={[styles.sortBar, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+                <View style={styles.sortChips}>
+                  {sortOptions.map((opt) => (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => handleSort(opt.value)}
+                      style={({ pressed }) => [
+                        styles.sortChip,
+                        {
+                          backgroundColor: sortBy === opt.value ? palette.accentPrimary : palette.inputBg,
+                          borderColor: sortBy === opt.value ? palette.accentPrimary : palette.inputBorder,
+                          opacity: pressed ? 0.8 : 1,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={opt.icon}
+                        size={14}
+                        color={sortBy === opt.value ? '#ffffff' : palette.textMuted}
+                      />
+                      <Text
+                        style={[
+                          styles.sortChipTxt,
+                          { color: sortBy === opt.value ? '#ffffff' : palette.textSecondary },
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                      {sortBy === opt.value && (
+                        <Ionicons
+                          name={sortOrder === 'desc' ? 'chevron-down' : 'chevron-up'}
+                          size={12}
+                          color="#ffffff"
+                        />
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
 
           {positions.length === 0 && (
             <View style={[styles.emptyBox, { borderColor: palette.cardBorder }]}>
@@ -686,6 +842,14 @@ const styles = StyleSheet.create({
   strategistSub: { fontSize: FONT_SIZES.xs, lineHeight: 18, marginBottom: SPACING.xs },
   progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: SPACING.xs },
   progressLbl: { fontSize: FONT_SIZES.xs },
+  expandToggle: { borderRadius: RADIUS.lg, borderWidth: 1, overflow: 'hidden', marginBottom: SPACING.sm, paddingHorizontal: SPACING.base, paddingVertical: SPACING.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  expandToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, flex: 1 },
+  expandToggleTitle: { fontSize: FONT_SIZES.base, fontWeight: FONT_WEIGHTS.semibold },
+  expandToggleSub: { fontSize: FONT_SIZES.xs, marginTop: 2 },
+  sortBar: { borderRadius: RADIUS.lg, borderWidth: 1, overflow: 'hidden', marginBottom: SPACING.sm, paddingHorizontal: SPACING.sm, paddingVertical: SPACING.sm },
+  sortChips: { flexDirection: 'row', gap: SPACING.xs },
+  sortChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: RADIUS.full, borderWidth: 1 },
+  sortChipTxt: { fontSize: FONT_SIZES.xs, fontWeight: FONT_WEIGHTS.semibold },
 });
 
 export default PortfolioScreen;

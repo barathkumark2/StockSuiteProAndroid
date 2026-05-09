@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -98,21 +99,29 @@ const StockAverageScreen: React.FC = () => {
   );
 
   const resetAll = () => {
-    Alert.alert('Reset All', 'Clear all tranches?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reset',
-        style: 'destructive',
-        onPress: async () => {
-          const fresh = [makeBlankTranche()];
-          setTranches(fresh);
-          await persist(fresh);
-          await Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Warning
-          );
+    const performReset = async () => {
+      const fresh = [makeBlankTranche()];
+      setTranches(fresh);
+      await persist(fresh);
+      if (Platform.OS !== 'web') {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Clear all tranches?')) {
+        performReset();
+      }
+    } else {
+      Alert.alert('Reset All', 'Clear all tranches?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: performReset,
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   // ─── Calculations ──────────────────────────────────────────
